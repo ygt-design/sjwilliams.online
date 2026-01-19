@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { apiUrl } from "../../api/apiBase";
 
 const Stage = styled.div`
   position: ${(p) => (p.$positioning === "fixed" ? "fixed" : "absolute")};
@@ -179,9 +180,11 @@ function StickerOverlay({ variant = "home" } = {}) {
         const headers = isInitialLoad ? { 'Cache-Control': 'no-cache' } : {};
         
         const contentsRes = await fetch(
-          `http://localhost:3001/api/arena/channels/${encodeURIComponent(
-            STICKERS_CHANNEL_SLUG
-          )}/contents?per=100&page=1`,
+          apiUrl(
+            `/api/arena/channels/${encodeURIComponent(
+              STICKERS_CHANNEL_SLUG
+            )}/contents?per=100&page=1`
+          ),
           { headers }
         );
         if (!contentsRes.ok) {

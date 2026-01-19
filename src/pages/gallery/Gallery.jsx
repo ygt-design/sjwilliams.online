@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { theme } from '../../styles';
 import { fetchGroupChannelsPage1 } from '../../api/arenaProxy';
+import { apiUrl } from '../../api/apiBase';
 import { useRegisterLoading } from '../../loading/LoadingContext';
 
 const Wrapper = styled.div`
@@ -518,7 +519,7 @@ function Gallery() {
         const all = [];
         while (true) {
           const res = await fetch(
-            `http://localhost:3001/api/arena/channels/${galleryChannel.slug}/contents?per=${per}&page=${page}`,
+            apiUrl(`/api/arena/channels/${galleryChannel.slug}/contents?per=${per}&page=${page}`),
             { headers }
           );
           if (!res.ok) throw new Error(`Failed to fetch gallery contents: ${res.status}`);

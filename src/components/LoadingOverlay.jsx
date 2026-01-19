@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { useLoadingContext } from '../loading/LoadingContext';
+import { apiUrl } from '../api/apiBase';
 
 const FADE_MS = 450;
 const STICKER_SWAP_MS = 260;
@@ -105,9 +106,11 @@ function LoadingOverlay() {
 
       try {
         const res = await fetch(
-          `http://localhost:3001/api/arena/channels/${encodeURIComponent(
-            STICKERS_CHANNEL_SLUG
-          )}/contents?per=100&page=1`
+          apiUrl(
+            `/api/arena/channels/${encodeURIComponent(
+              STICKERS_CHANNEL_SLUG
+            )}/contents?per=100&page=1`
+          )
         );
         if (!res.ok) return;
         const data = await res.json();

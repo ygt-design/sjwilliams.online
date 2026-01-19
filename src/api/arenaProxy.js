@@ -1,4 +1,8 @@
-// Shared client helpers for our local Are.na proxy (localhost:3001)
+// Shared client helpers for our Are.na proxy.
+// - Local dev: hits http://localhost:3001 (see `npm run dev:proxy`)
+// - Production (Vercel): hits same-origin `/api/*` serverless functions
+
+import { apiUrl } from "./apiBase";
 
 const GROUP_CHANNELS_CACHE = new Map(); // groupSlug -> channels[]
 const GROUP_CHANNELS_INFLIGHT = new Map(); // groupSlug -> Promise<channels[]>
@@ -16,7 +20,7 @@ export async function fetchGroupChannelsPage1(groupSlug, { headers } = {}) {
 
   const p = (async () => {
     const res = await fetch(
-      `http://localhost:3001/api/arena/groups/${encodeURIComponent(key)}/channels?per=100&page=1`,
+      apiUrl(`/api/arena/groups/${encodeURIComponent(key)}/channels?per=100&page=1`),
       { headers }
     );
     if (!res.ok) {

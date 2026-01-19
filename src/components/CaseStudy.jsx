@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { GridContainer, GridColumn, theme } from '../styles';
 import StickerOverlay from '../pages/homepage/StickerOverlay';
 import { useRegisterLoading } from '../loading/LoadingContext';
+import { apiUrl } from '../api/apiBase';
 
 const Viewport = styled.div`
   box-sizing: border-box;
@@ -248,7 +249,7 @@ function CaseStudy({ channelSlug }) {
 
         while (true) {
           const res = await fetch(
-            `http://localhost:3001/api/arena/channels/${channelSlug}/contents?per=${per}&page=${page}`,
+            apiUrl(`/api/arena/channels/${channelSlug}/contents?per=${per}&page=${page}`),
             { headers }
           );
           if (!res.ok) {

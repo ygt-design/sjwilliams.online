@@ -4,6 +4,7 @@ import { GridContainer, GridColumn, theme } from '../../styles';
 import SteveHeadModel from './SteveHeadModel';
 import { fetchGroupChannelsPage1 } from '../../api/arenaProxy';
 import { useRegisterLoading } from '../../loading/LoadingContext';
+import { apiUrl } from '../../api/apiBase';
 
 const Wrapper = styled.div`
   padding-top: 120px;
@@ -143,7 +144,7 @@ function About() {
         let page = 1;
         while (true) {
           const res = await fetch(
-            `http://localhost:3001/api/arena/channels/${aboutChannel.slug}/contents?per=${per}&page=${page}`,
+            apiUrl(`/api/arena/channels/${aboutChannel.slug}/contents?per=${per}&page=${page}`),
             { headers }
           );
           if (!res.ok) throw new Error(`Failed to fetch about contents: ${res.status}`);

@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { theme, GridContainer, GridColumn } from '../../styles';
 import { fetchGroupChannelsPage1 } from '../../api/arenaProxy';
 import { useRegisterLoading } from '../../loading/LoadingContext';
+import { apiUrl } from '../../api/apiBase';
 
 const WorkContainer = styled.div`
 `;
@@ -361,7 +362,7 @@ function Work() {
 
           while (true) {
             const contentsRes = await fetch(
-              `http://localhost:3001/api/arena/channels/${channelSlug}/contents?per=${per}&page=${page}`,
+              apiUrl(`/api/arena/channels/${channelSlug}/contents?per=${per}&page=${page}`),
               { headers }
             );
             if (!contentsRes.ok) {

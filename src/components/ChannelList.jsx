@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../api/apiBase';
 
 function ChannelList() {
   const [channels, setChannels] = useState([]);
@@ -14,7 +15,7 @@ function ChannelList() {
         const headers = isInitialLoad ? { 'Cache-Control': 'no-cache' } : {};
         
         const res = await fetch(
-          `http://localhost:3001/api/arena/groups/${groupSlug}/channels?per=100&page=1`,
+          apiUrl(`/api/arena/groups/${groupSlug}/channels?per=100&page=1`),
           { headers }
         );
         if (!res.ok) {
