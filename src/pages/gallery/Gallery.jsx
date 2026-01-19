@@ -61,6 +61,9 @@ function GalleryCanvas({ images }) {
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
   const INITIAL_ZOOM = 0.85;
+  const MIN_ZOOM = 0.55;
+  const MAX_ZOOM = 3.25;
+  const ZOOM_SENSITIVITY = 0.004;
 
   // Render scheduling
   const rafRef = useRef(null);
@@ -439,8 +442,12 @@ function GalleryCanvas({ images }) {
         const wx = (mx - panRef.current.x) / zoom;
         const wy = (my - panRef.current.y) / zoom;
 
-        const factor = Math.exp(-e.deltaY * 0.0015);
-        const nextZoom = clamp(zoom * factor, 0.55, 2.2);
+        const deltaY =
+          e.deltaY *
+          (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? h : 1);
+
+        const factor = Math.exp(-deltaY * ZOOM_SENSITIVITY);
+        const nextZoom = clamp(zoom * factor, MIN_ZOOM, MAX_ZOOM);
         zoomRef.current = nextZoom;
 
         // Keep cursor world point stable
