@@ -29,6 +29,84 @@ const CanvasEl = styled.canvas`
   display: block;
 `;
 
+const ZoomControl = styled.div`
+  position: fixed;
+  right: 20px;
+  bottom: 50px;
+  z-index: 50;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+`;
+
+const ZoomLabel = styled.div`
+  font-family: ${theme.typography.fontFamilyMono};
+  font-size: 12px;
+  color: ${theme.colors.text};
+  opacity: 1;
+  /* backdrop-filter: blur(6px); */
+  padding: 4px 6px;
+  border-radius: 6px;
+`;
+
+// Because the range input is rotated, its visual size doesn't match its layout box.
+// This wrapper reserves the correct space so the label doesn't overlap.
+const ZoomSliderWrap = styled.div`
+  width: 28px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+// A vertical range slider (rotate a horizontal input).
+const ZoomRange = styled.input`
+  -webkit-appearance: none;
+  appearance: none;
+  width: 180px;
+  height: 28px;
+  transform: rotate(-90deg);
+  background: transparent;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+  }
+
+  /* Track */
+  &::-webkit-slider-runnable-track {
+    height: 2px;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 999px;
+  }
+  &::-moz-range-track {
+    height: 2px;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 999px;
+  }
+
+  /* Thumb */
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: #000;
+    margin-top: -6px; /* center on 2px track */
+  }
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: #000;
+    border: none;
+  }
+`;
+
 function getImageUrls(block) {
   return {
     thumb: block?.image?.thumb?.url || '',
@@ -60,10 +138,11 @@ function GalleryCanvas({ images }) {
   // World transform
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
-  const INITIAL_ZOOM = 0.85;
-  const MIN_ZOOM = 0.55;
-  const MAX_ZOOM = 3.25;
-  const ZOOM_SENSITIVITY = 0.004;
+  const INITIAL_ZOOM = 0.7;   // start more zoomed-out
+  const MIN_ZOOM = 0.45;
+  const MAX_ZOOM = 4.75;      // allow deeper zoom-in
+  const ZOOM_SENSITIVITY = 0.006; // faster pinch/trackpad zoom
+  const [zoomUI, setZoomUI] = useState(() => INITIAL_ZOOM);
 
   // Render scheduling
   const rafRef = useRef(null);
@@ -286,7 +365,11 @@ function GalleryCanvas({ images }) {
     const bottom = (h - panY + marginPx) / zoom;
 
     // Apply transform for drawing tiles.
-    ctx.setTransform(dpr, 0, 0, dpr, panX, panY);
+    // Important: panX/panY are in CSS pixels. When we set a DPR-scaled transform,
+    // we must apply translation in CSS space (via translate) so it scales by DPR.
+    // Otherwise panning feels "clipped" on high-DPI screens.
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.translate(panX, panY);
     ctx.scale(zoom, zoom);
 
     ctx.imageSmoothingEnabled = true;
@@ -356,6 +439,7 @@ function GalleryCanvas({ images }) {
 
       const zoom = INITIAL_ZOOM;
       zoomRef.current = zoom;
+      setZoomUI(zoom);
       panRef.current = {
         x: (w - layout.width * zoom) / 2,
         y: (h - layout.height * zoom) / 2,
@@ -386,6 +470,32 @@ function GalleryCanvas({ images }) {
     return () => window.removeEventListener('resize', onResize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layout.width, layout.height]);
+
+  const applyZoomAt = (nextZoom, anchorX, anchorY) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const w = Math.max(1, stage.clientWidth);
+    const h = Math.max(1, stage.clientHeight);
+    const zoom = zoomRef.current;
+
+    // world point under anchor
+    const wx = (anchorX - panRef.current.x) / zoom;
+    const wy = (anchorY - panRef.current.y) / zoom;
+
+    zoomRef.current = nextZoom;
+    setZoomUI(nextZoom);
+
+    // keep anchor stable
+    panRef.current.x = anchorX - wx * nextZoom;
+    panRef.current.y = anchorY - wy * nextZoom;
+
+    const b = getPanBounds(w, h, nextZoom);
+    panRef.current.x = clamp(panRef.current.x, b.minX, b.maxX);
+    panRef.current.y = clamp(panRef.current.y, b.minY, b.maxY);
+
+    requestDraw();
+  };
 
   // Drag pan + wheel pan (no zoom)
   useEffect(() => {
@@ -449,6 +559,7 @@ function GalleryCanvas({ images }) {
         const factor = Math.exp(-deltaY * ZOOM_SENSITIVITY);
         const nextZoom = clamp(zoom * factor, MIN_ZOOM, MAX_ZOOM);
         zoomRef.current = nextZoom;
+        setZoomUI(nextZoom);
 
         // Keep cursor world point stable
         panRef.current.x = mx - wx * nextZoom;
@@ -489,6 +600,27 @@ function GalleryCanvas({ images }) {
   return (
     <CanvasStage ref={stageRef}>
       <CanvasEl ref={canvasRef} />
+      <ZoomControl aria-label="Zoom controls">
+        <ZoomLabel>×{Number(zoomUI).toFixed(2)}</ZoomLabel>
+        <ZoomSliderWrap>
+          <ZoomRange
+            type="range"
+            min={MIN_ZOOM}
+            max={MAX_ZOOM}
+            step={0.01}
+            value={zoomUI}
+            aria-label="Zoom"
+            onChange={(e) => {
+              const next = clamp(Number(e.target.value), MIN_ZOOM, MAX_ZOOM);
+              const stage = stageRef.current;
+              if (!stage) return;
+              const w = Math.max(1, stage.clientWidth);
+              const h = Math.max(1, stage.clientHeight);
+              applyZoomAt(next, w / 2, h / 2); // keep viewport center stable
+            }}
+          />
+        </ZoomSliderWrap>
+      </ZoomControl>
     </CanvasStage>
   );
 }

@@ -48,7 +48,8 @@ const NavLink = styled.a`
   padding: 0;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.1);
+    background: ${theme.colors.border};
+    color: ${theme.colors.text};
   }
 `;
 
