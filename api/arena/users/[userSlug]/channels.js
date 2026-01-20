@@ -1,20 +1,25 @@
-import { fetchArenaJson, getQueryParam, hasArenaToken, isBypassCache } from "../../../_arenaProxy.js";
+import {
+  fetchArenaJson,
+  getQueryParam,
+  hasArenaToken,
+  isBypassCache,
+} from "../../../_arenaProxy.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
 
-  const groupSlug = getQueryParam(req, "groupSlug", "");
-  if (!groupSlug) return res.status(400).json({ error: "Missing groupSlug" });
+  const userSlug = getQueryParam(req, "userSlug", "");
+  if (!userSlug) return res.status(400).json({ error: "Missing userSlug" });
 
   const page = getQueryParam(req, "page", "1");
   const per = getQueryParam(req, "per", "100");
   const bypassCache = isBypassCache(req);
 
   const qs = new URLSearchParams({ page, per });
-  const url = `https://api.are.na/v2/groups/${encodeURIComponent(groupSlug)}/channels?${qs.toString()}`;
+  const url = `https://api.are.na/v2/users/${encodeURIComponent(userSlug)}/channels?${qs.toString()}`;
 
   const authKey = hasArenaToken() ? "auth" : "anon";
-  const cacheKey = `${authKey}:groups:${groupSlug}:channels:page=${page}:per=${per}`;
+  const cacheKey = `${authKey}:users:${userSlug}:channels:page=${page}:per=${per}`;
   const flightKey = bypassCache ? `${cacheKey}:nocache` : cacheKey;
 
   try {
@@ -24,7 +29,7 @@ export default async function handler(req, res) {
     if (result.status === 429 && result.retryAfter) {
       res.setHeader("Retry-After", result.retryAfter);
     }
-    // Normalize to just channels (v2 groups/channels returns { channels: [...] })
+    // Normalize to just channels (v2 users/channels returns { channels: [...] })
     const channels = Array.isArray(result.data) ? result.data : (result.data?.channels || []);
     return res.status(result.status).json(channels);
   } catch (err) {

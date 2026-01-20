@@ -173,8 +173,12 @@ function LoadingOverlay() {
     <Overlay aria-hidden="true" $visible={overlayVisible}>
       <StickerStage>
         <StickerWrap>
-          <StickerImg src={layerA || ''} alt="" $show={overlayVisible && showA} />
-          <StickerImg src={layerB || ''} alt="" $show={overlayVisible && !showA} />
+          {layerA ? (
+            <StickerImg src={layerA} alt="" $show={overlayVisible && showA} />
+          ) : null}
+          {layerB ? (
+            <StickerImg src={layerB} alt="" $show={overlayVisible && !showA} />
+          ) : null}
         </StickerWrap>
       </StickerStage>
     </Overlay>

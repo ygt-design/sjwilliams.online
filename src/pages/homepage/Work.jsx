@@ -213,6 +213,18 @@ const WorkImage = styled.img`
   display: block;
 `;
 
+const WorkImagePlaceholder = styled.div`
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.02);
+  display: grid;
+  place-items: center;
+  font-family: ${theme.typography.fontFamilyMono};
+  font-size: 12px;
+  color: ${theme.colors.textLight};
+`;
+
 const WorkTitle = styled.div`
   margin-top: 12px;
   font-size: 14px;
@@ -258,14 +270,28 @@ function stripWorkPrefix(title) {
   return t.replace(/^[-—]\s*/, "").trim();
 }
 
+function getBlockText(block) {
+  if (!block) return '';
+  const c = block?.content;
+  if (typeof c === 'string' && c.trim()) return c.trim();
+  if (c && typeof c === 'object') {
+    const plain = typeof c.plain === 'string' ? c.plain : '';
+    const markdown = typeof c.markdown === 'string' ? c.markdown : '';
+    if (plain.trim()) return plain.trim();
+    if (markdown.trim()) return markdown.trim();
+  }
+  if (typeof block?.description === 'string' && block.description.trim()) return block.description.trim();
+  return '';
+}
+
 function extractTagsFromBlocks(blocksArray) {
   const out = [];
   const seen = new Set();
 
   for (const block of blocksArray || []) {
     if (block?.title?.toLowerCase() !== 'tag') continue;
-    const content = typeof block?.content === 'string' ? block.content : '';
-    const parts = content
+    const content = getBlockText(block);
+    const parts = String(content || '')
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
@@ -356,6 +382,7 @@ function Work() {
           const per = 100;
           let page = 1;
           let coverBlock = null;
+          let firstImageBlock = null;
           let clientBlock = null;
           const tags = [];
           const tagsSeen = new Set();
@@ -380,6 +407,10 @@ function Work() {
                 (block) => block.title?.toLowerCase() === 'cover' && !!getImageUrl(block)
               ) || null;
             }
+
+            if (!firstImageBlock) {
+              firstImageBlock = blocksArray.find((block) => !!getImageUrl(block)) || null;
+            }
             if (!clientBlock) {
               clientBlock = blocksArray.find(
                 (block) => block.title?.toLowerCase() === 'client'
@@ -393,16 +424,14 @@ function Work() {
               tags.push(t);
             }
 
-            // we can stop early if we've found a cover and at least one Tag block
-            if (coverBlock && tags.length > 0 && clientBlock) break;
+            // We can stop early if we've found the key metadata we care about.
+            if ((coverBlock || firstImageBlock) && (clientBlock || tags.length > 0)) break;
             if (!Array.isArray(blocksArray) || blocksArray.length < per) break;
             page += 1;
           }
 
-          if (!coverBlock) return null;
-
           return {
-            coverBlock,
+            coverBlock: coverBlock || firstImageBlock,
             clientBlock,
             tags,
           };
@@ -435,17 +464,15 @@ function Work() {
         const items = (await mapWithConcurrency(workChannels, 3, async (channel) => {
           try {
             const blocks = await fetchChannelBlocks(channel.slug);
-            if (!blocks) return null;
-
             return {
               id: channel.id,
               channelSlug: channel.slug,
               channelTitle: channel.title,
-              imageUrl: getImageUrl(blocks.coverBlock),
-              coverBlockId: blocks.coverBlock.id,
-              client: blocks.clientBlock?.content || '',
-              tags: Array.isArray(blocks.tags) ? blocks.tags : [],
-              tagsLabel: Array.isArray(blocks.tags) ? blocks.tags.join(', ') : '',
+              imageUrl: blocks?.coverBlock ? getImageUrl(blocks.coverBlock) : null,
+              coverBlockId: blocks?.coverBlock?.id || null,
+              client: blocks?.clientBlock ? getBlockText(blocks.clientBlock) : '',
+              tags: Array.isArray(blocks?.tags) ? blocks.tags : [],
+              tagsLabel: Array.isArray(blocks?.tags) ? blocks.tags.join(', ') : '',
             };
           } catch (err) {
             console.warn(`Error fetching contents for channel ${channel.slug}:`, err);
@@ -572,7 +599,11 @@ function Work() {
                       }
                     }}
                   >
-                    <WorkImage src={item.imageUrl} alt={displayTitle} />
+                    {item.imageUrl ? (
+                      <WorkImage src={item.imageUrl} alt={displayTitle} />
+                    ) : (
+                      <WorkImagePlaceholder>No image</WorkImagePlaceholder>
+                    )}
                     <WorkMetaName>{displayTitle}</WorkMetaName>
                     <WorkMetaTags>{item.tagsLabel || ''}</WorkMetaTags>
                   </WorkItem>

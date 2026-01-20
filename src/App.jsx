@@ -11,6 +11,7 @@ import Work from './pages/homepage/Work';
 import CaseStudy from './components/CaseStudy';
 import About from './pages/about/About';
 import Gallery from './pages/gallery/Gallery';
+import Footer from './components/Footer';
 
 function App() {
   const [showGrid, setShowGrid] = useState(false);
@@ -107,6 +108,7 @@ function App() {
             <Work />
           </>
         )}
+        {route !== 'case' && <Footer />}
       </LoadingProvider>
     </ThemeProvider>
   );

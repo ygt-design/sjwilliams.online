@@ -170,11 +170,50 @@ app.get("/api/arena/groups/:groupSlug/channels", async (req, res) => {
       bypassCache,
     });
 
+    // Normalize to just channels (v2 groups/channels returns { channels: [...] })
+    const payload = Array.isArray(result.data) ? result.data : (result.data?.channels || []);
+
     res.setHeader("x-proxy-cache", result.fromCache ? "HIT" : "MISS");
     if (result.status === 429 && result.retryAfter) {
       res.setHeader("Retry-After", result.retryAfter);
     }
-    return res.status(result.status).json(result.data);
+    return res.status(result.status).json(payload);
+  } catch (err) {
+    console.error("Proxy error:", err);
+    return res.status(500).json({ error: "Proxy failed", details: err.message });
+  }
+});
+
+// Proxy: user channels (many Are.na "profiles" are users, not groups)
+app.get("/api/arena/users/:userSlug/channels", async (req, res) => {
+  try {
+    const { userSlug } = req.params;
+
+    const page = typeof req.query.page === "string" ? req.query.page : "1";
+    const per = typeof req.query.per === "string" ? req.query.per : "100"; // default higher
+    const bypassCache = isBypassCache(req);
+
+    const qs = new URLSearchParams({ page, per });
+    const url = `https://api.are.na/v2/users/${encodeURIComponent(userSlug)}/channels?${qs.toString()}`;
+
+    const authKey = ARENA_ACCESS_TOKEN ? "auth" : "anon";
+    const cacheKey = `${authKey}:users:${userSlug}:channels:page=${page}:per=${per}`;
+    const flightKey = bypassCache ? `${cacheKey}:nocache` : cacheKey;
+
+    const result = await fetchWithDedupe({
+      cacheKey,
+      flightKey,
+      url,
+      headers: buildHeaders(),
+      bypassCache,
+    });
+
+    res.setHeader("x-proxy-cache", result.fromCache ? "HIT" : "MISS");
+    if (result.status === 429 && result.retryAfter) {
+      res.setHeader("Retry-After", result.retryAfter);
+    }
+    const payload = Array.isArray(result.data) ? result.data : (result.data?.channels || []);
+    return res.status(result.status).json(payload);
   } catch (err) {
     console.error("Proxy error:", err);
     return res.status(500).json({ error: "Proxy failed", details: err.message });

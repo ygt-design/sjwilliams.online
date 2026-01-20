@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# ReadMe `api` SDK generator output
+.api
+
 # Environment variables
 .env
 .env.local

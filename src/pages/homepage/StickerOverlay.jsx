@@ -194,14 +194,11 @@ function StickerOverlay({ variant = "home" } = {}) {
         const blocksArray = Array.isArray(contentsData) ? contentsData : (contentsData.contents || []);
         const imagesOnly = blocksArray.filter((b) => !!getImageUrl(b));
 
-        if (imagesOnly.length < 3) {
-          throw new Error("Not enough image stickers in the channel (need at least 3).");
-        }
-
         setImageBlocks(imagesOnly);
         sessionStorage.setItem('stickersLoaded', 'true');
       } catch (err) {
         console.error(err);
+        // Soft-fail: stickers are decorative; avoid breaking the page.
         setError(err.message || "Failed to load stickers");
       }
     }

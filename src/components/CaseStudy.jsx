@@ -168,7 +168,14 @@ function allByTitle(blocks, wanted) {
 
 function bestText(block) {
   if (!block) return '';
-  if (typeof block.content === 'string' && block.content.trim()) return block.content.trim();
+  const c = block?.content;
+  if (typeof c === 'string' && c.trim()) return c.trim();
+  if (c && typeof c === 'object') {
+    const plain = typeof c.plain === 'string' ? c.plain : '';
+    const markdown = typeof c.markdown === 'string' ? c.markdown : '';
+    if (plain.trim()) return plain.trim();
+    if (markdown.trim()) return markdown.trim();
+  }
   if (typeof block.title === 'string' && block.title.trim()) return block.title.trim();
   return '';
 }

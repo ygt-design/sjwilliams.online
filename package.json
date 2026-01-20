@@ -12,7 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "are.na": "^0.1.5",
+    "@api/arena-v3-api": "file:.api/apis/arena-v3-api",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^4.18.2",

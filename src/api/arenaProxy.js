@@ -18,15 +18,33 @@ export async function fetchGroupChannelsPage1(groupSlug, { headers } = {}) {
   if (GROUP_CHANNELS_CACHE.has(key)) return GROUP_CHANNELS_CACHE.get(key);
   if (GROUP_CHANNELS_INFLIGHT.has(key)) return await GROUP_CHANNELS_INFLIGHT.get(key);
 
-  const p = (async () => {
-    const res = await fetch(
-      apiUrl(`/api/arena/groups/${encodeURIComponent(key)}/channels?per=100&page=1`),
-      { headers }
-    );
+  async function fetchJson(path) {
+    const res = await fetch(apiUrl(path), { headers });
     if (!res.ok) {
-      throw new Error(`Failed to fetch channels: ${res.status}`);
+      const err = new Error(`Failed to fetch channels: ${res.status}`);
+      err.status = res.status;
+      throw err;
     }
-    const data = await res.json();
+    return await res.json();
+  }
+
+  const p = (async () => {
+    // Many Are.na "profiles" are users (not groups). Try group first, then fall back to user.
+    let data;
+    try {
+      data = await fetchJson(
+        `/api/arena/groups/${encodeURIComponent(key)}/channels?per=100&page=1`
+      );
+    } catch (err) {
+      if (err?.status === 404) {
+        data = await fetchJson(
+          `/api/arena/users/${encodeURIComponent(key)}/channels?per=100&page=1`
+        );
+      } else {
+        throw err;
+      }
+    }
+
     const channels = normalizeChannelsResponse(data);
     GROUP_CHANNELS_CACHE.set(key, channels);
     return channels;
