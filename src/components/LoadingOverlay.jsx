@@ -55,6 +55,10 @@ const StickerImg = styled.img`
 
 function getImageUrl(block) {
   return (
+    block?.image?.large?.src ||
+    block?.image?.medium?.src ||
+    block?.image?.src ||
+    block?.image?.small?.src ||
     block?.image?.display?.url ||
     block?.image?.original?.url ||
     block?.image?.thumb?.url ||

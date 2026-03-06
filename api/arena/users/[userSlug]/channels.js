@@ -15,8 +15,8 @@ export default async function handler(req, res) {
   const per = getQueryParam(req, "per", "100");
   const bypassCache = isBypassCache(req);
 
-  const qs = new URLSearchParams({ page, per });
-  const url = `https://api.are.na/v2/users/${encodeURIComponent(userSlug)}/channels?${qs.toString()}`;
+  const qs = new URLSearchParams({ page, per, type: "Channel" });
+  const url = `https://api.are.na/v3/users/${encodeURIComponent(userSlug)}/contents?${qs.toString()}`;
 
   const authKey = hasArenaToken() ? "auth" : "anon";
   const cacheKey = `${authKey}:users:${userSlug}:channels:page=${page}:per=${per}`;
@@ -29,8 +29,7 @@ export default async function handler(req, res) {
     if (result.status === 429 && result.retryAfter) {
       res.setHeader("Retry-After", result.retryAfter);
     }
-    // Normalize to just channels (v2 users/channels returns { channels: [...] })
-    const channels = Array.isArray(result.data) ? result.data : (result.data?.channels || []);
+    const channels = Array.isArray(result.data) ? result.data : (result.data?.data || []);
     return res.status(result.status).json(channels);
   } catch (err) {
     return res.status(500).json({ error: "Proxy failed", details: err?.message || String(err) });

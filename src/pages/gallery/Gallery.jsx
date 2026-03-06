@@ -109,14 +109,17 @@ const ZoomRange = styled.input`
 
 function getImageUrls(block) {
   return {
-    thumb: block?.image?.thumb?.url || '',
-    display: block?.image?.display?.url || '',
-    original: block?.image?.original?.url || '',
+    thumb: block?.image?.small?.src || block?.image?.thumb?.url || '',
+    display: block?.image?.large?.src || block?.image?.medium?.src || block?.image?.display?.url || '',
+    original: block?.image?.src || block?.image?.original?.url || '',
   };
 }
 
 function getBestDims(block) {
   const d =
+    block?.image?.medium ||
+    block?.image?.large ||
+    block?.image?.small ||
     block?.image?.display ||
     block?.image?.thumb ||
     block?.image?.original ||

@@ -155,8 +155,8 @@ app.get("/api/arena/groups/:groupSlug/channels", async (req, res) => {
     const per = typeof req.query.per === "string" ? req.query.per : "100"; // default higher
     const bypassCache = isBypassCache(req);
 
-    const qs = new URLSearchParams({ page, per });
-    const url = `https://api.are.na/v2/groups/${encodeURIComponent(groupSlug)}/channels?${qs.toString()}`;
+    const qs = new URLSearchParams({ page, per, type: "Channel" });
+    const url = `https://api.are.na/v3/groups/${encodeURIComponent(groupSlug)}/contents?${qs.toString()}`;
 
     const authKey = ARENA_ACCESS_TOKEN ? "auth" : "anon";
     const cacheKey = `${authKey}:groups:${groupSlug}:channels:page=${page}:per=${per}`;
@@ -170,8 +170,7 @@ app.get("/api/arena/groups/:groupSlug/channels", async (req, res) => {
       bypassCache,
     });
 
-    // Normalize to just channels (v2 groups/channels returns { channels: [...] })
-    const payload = Array.isArray(result.data) ? result.data : (result.data?.channels || []);
+    const payload = Array.isArray(result.data) ? result.data : (result.data?.data || []);
 
     res.setHeader("x-proxy-cache", result.fromCache ? "HIT" : "MISS");
     if (result.status === 429 && result.retryAfter) {
@@ -193,8 +192,8 @@ app.get("/api/arena/users/:userSlug/channels", async (req, res) => {
     const per = typeof req.query.per === "string" ? req.query.per : "100"; // default higher
     const bypassCache = isBypassCache(req);
 
-    const qs = new URLSearchParams({ page, per });
-    const url = `https://api.are.na/v2/users/${encodeURIComponent(userSlug)}/channels?${qs.toString()}`;
+    const qs = new URLSearchParams({ page, per, type: "Channel" });
+    const url = `https://api.are.na/v3/users/${encodeURIComponent(userSlug)}/contents?${qs.toString()}`;
 
     const authKey = ARENA_ACCESS_TOKEN ? "auth" : "anon";
     const cacheKey = `${authKey}:users:${userSlug}:channels:page=${page}:per=${per}`;
@@ -212,7 +211,7 @@ app.get("/api/arena/users/:userSlug/channels", async (req, res) => {
     if (result.status === 429 && result.retryAfter) {
       res.setHeader("Retry-After", result.retryAfter);
     }
-    const payload = Array.isArray(result.data) ? result.data : (result.data?.channels || []);
+    const payload = Array.isArray(result.data) ? result.data : (result.data?.data || []);
     return res.status(result.status).json(payload);
   } catch (err) {
     console.error("Proxy error:", err);
@@ -230,7 +229,7 @@ app.get("/api/arena/channels/:channelSlug/contents", async (req, res) => {
     const bypassCache = isBypassCache(req);
 
     const qs = new URLSearchParams({ page, per });
-    const url = `https://api.are.na/v2/channels/${encodeURIComponent(channelSlug)}/contents?${qs.toString()}`;
+    const url = `https://api.are.na/v3/channels/${encodeURIComponent(channelSlug)}/contents?${qs.toString()}`;
 
     const authKey = ARENA_ACCESS_TOKEN ? "auth" : "anon";
     const cacheKey = `${authKey}:channels:${channelSlug}:contents:page=${page}:per=${per}`;
@@ -248,7 +247,8 @@ app.get("/api/arena/channels/:channelSlug/contents", async (req, res) => {
     if (result.status === 429 && result.retryAfter) {
       res.setHeader("Retry-After", result.retryAfter);
     }
-    return res.status(result.status).json(result.data);
+    const contents = result.data?.data || result.data?.contents || [];
+    return res.status(result.status).json({ contents });
   } catch (err) {
     console.error("Proxy error:", err);
     return res.status(500).json({ error: "Proxy failed", details: err.message });
