@@ -207,8 +207,8 @@ const WorkItem = styled.div`
 
 const WorkImage = styled.img`
   width: 100%;
-  height: auto;
-  object-fit: contain;
+  max-height: 450px;
+  object-fit: cover;
   object-position: top;
   display: block;
 `;
