@@ -1,8 +1,10 @@
+import { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { GridColumn, media, theme } from '../../styles';
-import selfiesVideo from '../../assets/videos/selfies.mov';
 
-const VideoCard = styled.div`
+const steveHeadUrl = new URL('../../assets/modal/steveHead.glb', import.meta.url).href;
+
+const ModelCard = styled.div`
   width: 100%;
   height: 70vh;
   min-height: 520px;
@@ -11,14 +13,15 @@ const VideoCard = styled.div`
   overflow: hidden;
 `;
 
-const StyledVideo = styled.video`
+const ModelViewer = styled('model-viewer')`
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
+  background: transparent;
+  pointer-events: none;
 `;
 
-const VideoColumn = styled(GridColumn)`
+const ModelColumn = styled(GridColumn)`
   align-self: start;
 
   ${media.tablet} {
@@ -34,18 +37,45 @@ const VideoColumn = styled(GridColumn)`
 `;
 
 function SteveHeadModel() {
+  const viewerRef = useRef(null);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    const mv = viewerRef.current;
+    if (!mv) return;
+
+    const MAX_DEG = 50;
+    const PERIOD_MS = 6000; // full -90 -> +90 -> -90 loop
+    const start = performance.now();
+
+    const tick = () => {
+      const t = (performance.now() - start) / PERIOD_MS; // cycles
+      const angle = Math.sin(t * Math.PI * 2) * MAX_DEG;
+      // orientation: x y z
+      mv.setAttribute('orientation', `0deg 0deg ${angle.toFixed(2)}deg`);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, []);
+
   return (
-    <VideoColumn span={4} tabletStart={1} tabletSpan={6}>
-      <VideoCard>
-        <StyledVideo
-          src={selfiesVideo}
-          autoPlay
-          loop
-          muted
-          playsInline
+    <ModelColumn span={4} tabletStart={1} tabletSpan={6}>
+      <ModelCard>
+        <ModelViewer
+          ref={viewerRef}
+          src={steveHeadUrl}
+          alt="Steve head 3D model"
+          disable-zoom
+          interaction-prompt="none"
+          exposure="1"
         />
-      </VideoCard>
-    </VideoColumn>
+      </ModelCard>
+    </ModelColumn>
   );
 }
 
